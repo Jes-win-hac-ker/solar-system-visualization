@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Solar System — Planet Data</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#9aa8bf;
+      --accent:#7dd3fc;
+      --glass: rgba(255,255,255,0.03);
+      --row-even: rgba(255,255,255,0.02);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color-scheme: dark;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background: linear-gradient(180deg,#071021 0%, #081426 60%);
+      color:#e6eef8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .container{
+      width:100%;
+      max-width:1100px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.7);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    header {
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      padding:20px 24px;
+      background:linear-gradient(90deg, rgba(125,211,252,0.04), rgba(125,211,252,0.02));
+      border-bottom:1px solid rgba(255,255,255,0.02);
+    }
+    header h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:0.2px;
+    }
+    header p { margin:0; color:var(--muted); font-size:13px; }
+
+    .controls{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .search {
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.03);
+      padding:8px 12px;
+      border-radius:10px;
+      color:var(--muted);
+      width:260px;
+      outline:none;
+    }
+    .search::placeholder { color: #7c93ad; }
+
+    .table-wrap{
+      overflow:auto;
+      max-height:64vh;
+    }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      min-width:880px;
+    }
+    thead th{
+      position:sticky;
+      top:0;
+      background:linear-gradient(180deg, rgba(8,12,20,0.6), rgba(8,12,20,0.5));
+      backdrop-filter: blur(4px);
+      padding:12px 16px;
+      text-align:left;
+      font-size:13px;
+      color:var(--muted);
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      cursor:pointer;
+      user-select:none;
+    }
+    thead th:focus {
+      outline: 3px solid rgba(125,211,252,0.12);
+      outline-offset:2px;
+    }
+    thead th .col-label { display:inline-block; margin-right:8px; }
+    thead th .sort-indicator { font-size:12px; opacity:0.8; }
+
+    tbody tr {
+      transition: background .15s ease;
+    }
+    tbody tr:nth-child(even) { background:var(--row-even); }
+    tbody tr:hover { background: rgba(125,211,252,0.02); }
+
+    td {
+      padding:14px 16px;
+      vertical-align:middle;
+      font-size:14px;
+      border-bottom:1px dashed rgba(255,255,255,0.02);
+    }
+
+    /* Planet badge (colored circle) */
+    .planet {
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+    }
+    .planet .badge{
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      box-shadow: inset -2px -2px 4px rgba(0,0,0,0.4);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    .planet .name { font-weight:600; }
+
+    /* specific planet colors */
+    .mercury{ background:linear-gradient(180deg,#8b8b8b,#6b6b6b); }
+    .venus  { background:linear-gradient(180deg,#e4cf7a,#caa33c); }
+    .earth  { background:linear-gradient(180deg,#4da3ff,#1b6ed6); }
+    .mars   { background:linear-gradient(180deg,#ff7a5a,#d64b2b); }
+    .jupiter{ background:linear-gradient(180deg,#f0d8b0,#c48b4a); }
+    .saturn { background:linear-gradient(180deg,#e8d6b6,#c9a46e); }
+    .uranus { background:linear-gradient(180deg,#9fe0e6,#5ac3c8); }
+    .neptune{ background:linear-gradient(180deg,#6b8bff,#345bd6); }
+    .pluto  { background:linear-gradient(180deg,#b59fb0,#8a6b84); } /* optional */
+
+    .muted { color:var(--muted); font-size:13px; }
+
+    .chip {
+      display:inline-block;
+      padding:6px 8px;
+      border-radius:999px;
+      font-size:12px;
+      background:rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    /* Responsive tweaks */
+    @media (max-width:900px){
+      .search{ width:160px; }
+      td{ padding:10px 12px; font-size:13px; }
+      thead th{ font-size:12px; padding:10px 12px; }
+    }
+    @media (max-width:650px){
+      table { min-width:700px; } /* allow horizontal scroll */
+    }
+
+    /* small helper */
+    .meta { color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="container" role="region" aria-label="Solar system planet data">
+    <header>
+      <div>
+        <h1>Solar System — Planet Data</h1>
+        <p class="meta">A compact table of planets with key metrics. Click column headers to sort, or use search.</p>
+      </div>
+
+      <div class="controls" role="search" aria-label="Search planets">
+        <input id="search" class="search" type="search" placeholder="Search by name, atmosphere or tag..." aria-label="Search planets">
+        <div class="chip" aria-hidden="true">Total: <span id="count">8</span></div>
+      </div>
+    </header>
+
+    <div class="table-wrap" tabindex="0">
+      <table id="planets" role="table" aria-label="List of planets">
+        <thead>
+          <tr>
+            <th data-key="name" tabindex="0"><span class="col-label">Planet</span><span class="sort-indicator" aria-hidden="true"></span></th>
+            <th data-key="diameter_km" tabindex="0"><span class="col-label">Diameter (km)</span><span class="sort-indicator"></span></th>
+            <th data-key="mass_10e24kg" tabindex="0"><span class="col-label">Mass (10²⁴kg)</span><span class="sort-indicator"></span></th>
+            <th data-key="distance_mkm" tabindex="0"><span class="col-label">Distance from Sun (10⁶ km)</span><span class="sort-indicator"></span></th>
+            <th data-key="moons" tabindex="0"><span class="col-label">Moons</span><span class="sort-indicator"></span></th>
+            <th data-key="orbital_period_days" tabindex="0"><span class="col-label">Orbital Period (days)</span><span class="sort-indicator"></span></th>
+            <th data-key="atmosphere" tabindex="0"><span class="col-label">Primary Atmosphere</span><span class="sort-indicator"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- Rows inserted by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const planets = [
+        {
+          name: "Mercury",
+          slug: "mercury",
+          diameter_km: 4879,
+          mass_10e24kg: 0.330,
+          distance_mkm: 57.9,
+          moons: 0,
+          orbital_period_days: 88,
+          atmosphere: "None (thin exosphere)"
+        },
+        {
+          name: "Venus",
+          slug: "venus",
+          diameter_km: 12104,
+          mass_10e24kg: 4.87,
+          distance_mkm: 108.2,
+          moons: 0,
+          orbital_period_days: 225,
+          atmosphere: "CO₂, N₂ (thick, greenhouse)"
+        },
+        {
+          name: "Earth",
+          slug: "earth",
+          diameter_km: 12742,
+          mass_10e24kg: 5.97,
+          distance_mkm: 149.6,
+          moons: 1,
+          orbital_period_days: 365.25,
+          atmosphere: "N₂, O₂"
+        },
+        {
+          name: "Mars",
+          slug: "mars",
+          diameter_km: 6779,
+          mass_10e24kg: 0.642,
+          distance_mkm: 227.9,
+          moons: 2,
+          orbital_period_days: 687,
+          atmosphere: "CO₂, N₂ (thin)"
+        },
+        {
+          name: "Jupiter",
+          slug: "jupiter",
+          diameter_km: 139820,
+          mass_10e24kg: 1898,
+          distance_mkm: 778.6,
+          moons: 95,
+          orbital_period_days: 4333,
+          atmosphere: "H₂, He"
+        },
+        {
+          name: "Saturn",
+          slug: "saturn",
+          diameter_km: 116460,
+          mass_10e24kg: 568,
+          distance_mkm: 1433.5,
+          moons: 83,
+          orbital_period_days: 10759,
+          atmosphere: "H₂, He"
+        },
+        {
+          name: "Uranus",
+          slug: "uranus",
+          diameter_km: 50724,
+          mass_10e24kg: 86.8,
+          distance_mkm: 2872.5,
+          moons: 27,
+          orbital_period_days: 30687,
+          atmosphere: "H₂, He, CH₄"
+        },
+        {
+          name: "Neptune",
+          slug: "neptune",
+          diameter_km: 49244,
+          mass_10e24kg: 102,
+          distance_mkm: 4495.1,
+          moons: 14,
+          orbital_period_days: 60190,
+          atmosphere: "H₂, He, CH₄"
+        }
+      ];
+
+      const tbody = document.getElementById('tbody');
+      const countEl = document.getElementById('count');
+      const searchInput = document.getElementById('search');
+      let currentSort = { key: null, dir: 1 }; // dir: 1 asc, -1 desc
+      let filtered = planets.slice();
+
+      function formatNumber(n){
+        if (n >= 100000) return n.toLocaleString();
+        if (n % 1 !== 0) return n.toString();
+        return n.toLocaleString();
+      }
+
+      function createRow(p){
+        const tr = document.createElement('tr');
+
+        // Planet name with colored badge
+        const tdName = document.createElement('td');
+        const nameWrap = document.createElement('div');
+        nameWrap.className = 'planet';
+        const badge = document.createElement('span');
+        badge.className = 'badge ' + p.slug;
+        badge.setAttribute('aria-hidden','true');
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'name';
+        nameSpan.textContent = p.name;
+        nameWrap.appendChild(badge);
+        nameWrap.appendChild(nameSpan);
+        tdName.appendChild(nameWrap);
+        tr.appendChild(tdName);
+
+        // Diameter
+        const tdDiameter = document.createElement('td');
+        tdDiameter.textContent = formatNumber(p.diameter_km);
+        tr.appendChild(tdDiameter);
+
+        // Mass
+        const tdMass = document.createElement('td');
+        tdMass.textContent = p.mass_10e24kg;
+        tr.appendChild(tdMass);
+
+        // Distance
+        const tdDist = document.createElement('td');
+        tdDist.textContent = p.distance_mkm;
+        tr.appendChild(tdDist);
+
+        // Moons
+        const tdMoons = document.createElement('td');
+        tdMoons.innerHTML = '<span class="chip" title="'+p.moons+' moons">'+p.moons+'</span>';
+        tr.appendChild(tdMoons);
+
+        // Orbital period
+        const tdOrbit = document.createElement('td');
+        tdOrbit.textContent = formatNumber(p.orbital_period_days);
+        tr.appendChild(tdOrbit);
+
+        // Atmosphere
+        const tdAtmo = document.createElement('td');
+        tdAtmo.textContent = p.atmosphere;
+        tr.appendChild(tdAtmo);
+
+        return tr;
+      }
+
+      function render(list){
+        tbody.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        list.forEach(p => frag.appendChild(createRow(p)));
+        tbody.appendChild(frag);
+        countEl.textContent = list.length;
+      }
+
+      // Initial render
+      render(filtered);
+
+      // Searching
+      function applySearch(){
+        const q = (searchInput.value || '').trim().toLowerCase();
+        if (!q) {
+          filtered = planets.slice();
+        } else {
+          filtered = planets.filter(p => {
+            return p.name.toLowerCase().includes(q)
+              || p.atmosphere.toLowerCase().includes(q)
+              || String(p.moons).includes(q)
+              || String(p.distance_mkm).includes(q);
+          });
+        }
+        applySort(); // keep current sort
+        render(filtered);
+      }
+
+      let searchDebounce = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(applySearch, 180);
+      });
+
+      // Sorting
+      const headers = document.querySelectorAll('thead th');
+      headers.forEach(h => {
+        h.addEventListener('click', () => {
+          const key = h.getAttribute('data-key');
+          if (!key) return;
+          if (currentSort.key === key) currentSort.dir *= -1;
+          else { currentSort.key = key; currentSort.dir = 1; }
+          applySort();
+          render(filtered);
+          updateHeaderIndicators();
+        });
+        // keyboard support
+        h.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            h.click();
+          }
+        });
+      });
+
+      function applySort(){
+        if (!currentSort.key) return;
+        const key = currentSort.key;
+        const dir = currentSort.dir;
+        filtered.sort((a,b) => {
+          const va = a[key];
+          const vb = b[key];
+          if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+          if (va < vb) return -1 * dir;
+          if (va > vb) return 1 * dir;
+          return 0;
+        });
+      }
+
+      function updateHeaderIndicators(){
+        headers.forEach(h => {
+          const span = h.querySelector('.sort-indicator');
+          span.textContent = '';
+          const key = h.getAttribute('data-key');
+          if (currentSort.key === key) {
+            span.textContent = currentSort.dir === 1 ? '▲' : '▼';
+            h.setAttribute('aria-sort', currentSort.dir === 1 ? 'ascending' : 'descending');
+          } else {
+            h.removeAttribute('aria-sort');
+          }
+        });
+      }
+
+      // accessibility: focus tbody when pressing tab from search
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab' && !e.shiftKey) {
+          // pass
+        }
+      });
+
+      // initial header indicators
+      updateHeaderIndicators();
+
+    })();
+  </script>
+</body>
+</html>
